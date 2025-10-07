@@ -1,0 +1,26 @@
+Running notebook: yuchen_testing/preprocessing_readmit30_expanded.ipynb
+Output executed notebook will be: yuchen_testing/preprocessing_readmit30_expanded.executed.ipynb
+[NbConvertApp] Converting notebook yuchen_testing/preprocessing_readmit30_expanded.ipynb to notebook
+[NbConvertApp] Writing 342 bytes to yuchen_testing/yuchen_testing/preprocessing_readmit30_expanded.executed.ipynb
+Traceback (most recent call last):
+  File "/opt/anaconda3/envs/mimic-py311/bin/jupyter-nbconvert", line 10, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/opt/anaconda3/envs/mimic-py311/lib/python3.11/site-packages/jupyter_core/application.py", line 284, in launch_instance
+    super().launch_instance(argv=argv, **kwargs)
+  File "/opt/anaconda3/envs/mimic-py311/lib/python3.11/site-packages/traitlets/config/application.py", line 1075, in launch_instance
+    app.start()
+  File "/opt/anaconda3/envs/mimic-py311/lib/python3.11/site-packages/nbconvert/nbconvertapp.py", line 420, in start
+    self.convert_notebooks()
+  File "/opt/anaconda3/envs/mimic-py311/lib/python3.11/site-packages/nbconvert/nbconvertapp.py", line 597, in convert_notebooks
+    self.convert_single_notebook(notebook_filename)
+  File "/opt/anaconda3/envs/mimic-py311/lib/python3.11/site-packages/nbconvert/nbconvertapp.py", line 566, in convert_single_notebook
+    write_results = self.write_single_notebook(output, resources)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/envs/mimic-py311/lib/python3.11/site-packages/nbconvert/nbconvertapp.py", line 526, in write_single_notebook
+    return self.writer.write(output, resources, notebook_name=notebook_name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/envs/mimic-py311/lib/python3.11/site-packages/nbconvert/writers/files.py", line 152, in write
+    with open(dest_path, "w", encoding="utf-8") as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'yuchen_testing/yuchen_testing/preprocessing_readmit30_expanded.executed.ipynb'

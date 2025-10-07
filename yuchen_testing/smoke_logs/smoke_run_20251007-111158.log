@@ -1,0 +1,6 @@
+Running notebook: yuchen_testing/preprocessing_readmit30_expanded.ipynb
+Output executed notebook will be: yuchen_testing/preprocessing_readmit30_expanded.executed.ipynb
+[NbConvertApp] Converting notebook yuchen_testing/preprocessing_readmit30_expanded.ipynb to notebook
+[NbConvertApp] Writing 342 bytes to yuchen_testing/preprocessing_readmit30_expanded.executed.ipynb
+nbconvert exit code: 0
+Completed successfully. Executed notebook and logs in yuchen_testing/smoke_logs

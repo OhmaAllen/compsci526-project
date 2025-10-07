@@ -1,0 +1,24 @@
+name: mimic-env
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - numpy=1.26.*
+  - pandas
+  - scipy
+  - scikit-learn
+  - matplotlib
+  - seaborn
+  - jupyterlab
+  - statsmodels
+  - shap
+  - joblib
+  - pip
+  - pytorch=2.2
+  - torchvision
+  - torchaudio
+  - cpuonly
+  - pip:
+    - jupyter-server-proxy
