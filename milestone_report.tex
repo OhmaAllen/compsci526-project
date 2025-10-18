@@ -1,0 +1,220 @@
+% This is milestone report for MIMIC-IV Hospital Readmission Prediction
+% Springer LLNCS format
+%
+\documentclass[runningheads]{llncs}
+%
+\usepackage[T1]{fontenc}
+% T1 fonts will be used to generate the final print and online PDFs,
+% so please use T1 fonts in your manuscript whenever possible.
+% Other font encondings may result in incorrect characters.
+%
+\usepackage{graphicx}
+% Used for displaying a sample figure. If possible, figure files should
+% be included in EPS format.
+%
+% If you use the hyperref package, please uncomment the following two lines
+% to display URLs in blue roman font according to Springer's eBook style:
+\usepackage{color}
+\usepackage{hyperref}
+\renewcommand\UrlFont{\color{blue}\rmfamily}
+\urlstyle{rm}
+%
+\begin{document}
+%
+\title{Milestone Report: Predicting Hospital Readmissions with Machine Learning and Deep Learning Models}
+%
+%\titlerunning{Abbreviated paper title}
+% If the paper title is too long for the running head, you can set
+% an abbreviated paper title here
+%
+\author{First Author\inst{1}\orcidID{0000-1111-2222-3333} \and
+Second Author\inst{2,3}\orcidID{1111-2222-3333-4444} \and
+Third Author\inst{3}\orcidID{2222--3333-4444-5555}}
+%
+\authorrunning{F. Author et al.}
+% First names are abbreviated in the running head.
+% If there are more than two authors, 'et al.' is used.
+%
+\institute{Duke University, Durham NC 27708, USA \and
+Springer Heidelberg, Tiergartenstr. 17, 69121 Heidelberg, Germany
+\email{project@duke.edu}\\
+\url{https://github.com/OhmaAllen/compsci526-project} \and
+Department of Computer Science, Duke University, Durham, NC, USA\\
+\email{\{authors\}@duke.edu}}
+%
+\maketitle              % typeset the header of the contribution
+%
+\begin{abstract}
+This milestone report documents the comprehensive preprocessing pipeline, exploratory data analysis, and baseline machine learning model development for hospital readmission prediction using MIMIC-IV data. We present the construction of a 30-day readmission prediction dataset with 68 engineered features from 546K+ hospital admissions, followed by evaluation of five baseline classification models (Logistic Regression, Random Forest, XGBoost, SVM, and Naive Bayes). XGBoost achieved the best performance with AUROC of 0.6699 in 5-fold cross-validation. These baseline results provide a foundation for subsequent deep learning model development and feature optimization.
+\keywords{MIMIC-IV \and Readmission Prediction \and Machine Learning \and Feature Engineering \and Deep Learning}
+\end{abstract}
+
+\section{Introduction}
+
+Hospital readmission within 30 days of discharge is a critical healthcare quality indicator and a significant cost driver. Early identification of high-risk patients enables targeted interventions to reduce readmission rates. This project leverages the MIMIC-IV database—a large-scale, de-identified electronic health record (EHR) dataset—to build predictive models for 30-day readmission. Our objective is to develop and compare machine learning and deep learning approaches to identify which modeling paradigm best captures the temporal patterns and complex interactions in patient data. This milestone focuses on establishing a robust data pipeline and evaluating baseline machine learning models to set performance benchmarks.
+
+\section{Code Repository}
+
+The complete code, including data preprocessing, feature engineering, model training, and evaluation scripts, is available at:
+\begin{center}
+\url{https://github.com/OhmaAllen/compsci526-project}
+\end{center}
+All reproducible analyses are documented in Jupyter notebooks with detailed comments. Representative sample data and generated features are included in the repository for reference.
+
+\section{Dataset Description}
+
+\subsection{Data Source and Structure}
+The MIMIC-IV database contains EHR data from Beth Israel Deaconess Medical Center. Our cohort comprises 546,038 hospital admissions from 181K+ unique patients. Each admission is linked to demographic, clinical, laboratory, and outcome data.
+
+\subsection{Feature Engineering Pipeline}
+Time-related columns (\texttt{admittime}, \texttt{dischtime}, \texttt{dod}, etc.) were standardized as \texttt{datetime} objects. For each admission, we computed the time to the next admission, generating the binary target label \texttt{readmit\_30d} (1 if readmitted within 30 days).
+
+Engineered features include:
+\begin{itemize}
+    \item \textbf{Utilization metrics:} time since previous discharge, ED visit flag, hospital LOS;
+    \item \textbf{Mortality indicators:} in-hospital death, death within readmission window;
+    \item \textbf{Diagnosis complexity:} number of unique ICD codes;
+    \item \textbf{Transfer and service patterns:} care-unit transfers, ICU transfer flag, surgical service indicator;
+    \item \textbf{Outpatient Medical Record (OMR):} latest BMI and eGFR before discharge;
+    \item \textbf{Laboratory summaries:} min/median/max values of key biomarkers (Hemoglobin, WBC, Platelet Count, Sodium, Potassium, Creatinine, BUN, Glucose).
+\end{itemize}
+
+The final cleaned dataset contains \textbf{546,038 admissions with 68 features}, with 19.6\% readmission rate. After 80/20 train-test split, we obtained 436,830 training and 109,208 test samples.
+
+\section{Analysis}
+
+\subsection{Exploratory Data Analysis}
+We conducted comprehensive visualization to examine distributions of key features and their relationships with readmission outcomes. Length of stay (LOS) distributions revealed that readmitted patients have a slightly heavier right tail (Figure~\ref{fig:los}), suggesting that extended stays may correlate with higher readmission risk.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.75\textwidth]{los_histogram.png}
+    \caption{Length of Stay by Readmission Label. Both distributions are right-skewed. Readmitted patients (label=1) show extended tails, indicating that longer stays may indicate greater instability at discharge. However, substantial overlap demonstrates that LOS alone is insufficient for prediction.}
+    \label{fig:los}
+\end{figure}
+
+\subsection{Baseline Model Development}
+To establish performance benchmarks, we trained and evaluated five classification models on the standardized dataset:
+
+\begin{itemize}
+    \item \textbf{Logistic Regression:} Class-weighted for imbalance handling, max\_iter=1000
+    \item \textbf{Random Forest:} 100 trees, max\_depth=20, class-weighted, parallelized (n\_jobs=-1)
+    \item \textbf{XGBoost:} 100 trees, depth=6, scale\_pos\_weight=4.09 for class imbalance
+    \item \textbf{SVM:} RBF kernel with class weights, trained on 50K stratified sample (optimized for computational efficiency)
+    \item \textbf{Naive Bayes:} Gaussian NB as baseline probabilistic approach
+\end{itemize}
+
+\subsection{Cross-Validation and Performance Results}
+Five-fold stratified cross-validation was performed on the training set. Results are summarized in Table~\ref{tab:cv_results}:
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{|l|c|c|c|c|}
+\hline
+\textbf{Model} & \textbf{Test AUROC} & \textbf{CV AUROC} & \textbf{CV Std} & \textbf{F1-Score} \\
+\hline
+Logistic Regression & 0.6362 & 0.6355 & 0.0014 & 0.3247 \\
+Random Forest & 0.6405 & 0.6409 & 0.0025 & 0.3316 \\
+\textbf{XGBoost} & \textbf{0.6712} & \textbf{0.6699} & \textbf{0.0011} & \textbf{0.3542} \\
+SVM (Sampled) & 0.6189 & N/A & — & 0.3089 \\
+Naive Bayes & 0.6143 & 0.6125 & 0.0017 & 0.2914 \\
+\hline
+\end{tabular}
+\caption{Baseline model performance on test set and 5-fold cross-validation. XGBoost achieves the best AUROC and demonstrates minimal variance across folds, indicating stable generalization.}
+\label{tab:cv_results}
+\end{table}
+
+Key findings:
+\begin{itemize}
+    \item \textbf{XGBoost best performer:} AUROC 0.6712 (test), 0.6699 (CV) with minimal variance (std=0.0011)
+    \item \textbf{Competitive alternatives:} Random Forest (AUROC 0.6405) and Logistic Regression (0.6362)
+    \item \textbf{Optimization strategy:} SVM trained on 50K stratified sample to balance computational cost with predictive utility
+    \item \textbf{Class imbalance handling:} Proper weighting of positive class improved all models
+\end{itemize}
+
+\subsection{Feature Importance Analysis}
+Feature importance rankings from Random Forest and XGBoost reveal that lab-derived features (Creatinine, BUN, Glucose summaries) and temporal patterns (time since previous discharge, LOS) are among the most predictive features, supporting the hypothesis that clinical complexity and prior healthcare utilization drive readmission risk.
+
+\section{Narrative and Insights}
+
+The preprocessing pipeline successfully transformed raw MIMIC-IV data into a structured, admission-level dataset with clinically meaningful features. Our baseline models achieve AUROC ~0.67, providing a credible foundation for subsequent deep learning approaches.
+
+Key observations:
+\begin{enumerate}
+    \item \textbf{Complex interactions:} Readmission risk is driven by subtle interactions among multiple features rather than single dominant predictors. LOS, lab abnormalities, and prior utilization patterns collectively indicate discharge instability.
+    \item \textbf{Ensemble superiority:} Tree-based ensemble methods (XGBoost, Random Forest) outperform linear approaches, suggesting non-linear decision boundaries.
+    \item \textbf{Temporal potential:} Current features capture static admission-level summaries. Deep learning approaches leveraging temporal sequences (RNN, Transformer) may capture dynamic patterns and improve predictions.
+    \item \textbf{Class imbalance challenge:} The 19.6\% readmission rate requires careful handling; proper weighting and threshold tuning are essential.
+\end{enumerate}
+
+\subsection{Remaining Work and Next Steps}
+
+\begin{itemize}
+    \item \textbf{Deep learning models:} Develop LSTM and Transformer-based architectures using time-series lab and vital sign sequences
+    \item \textbf{Feature refinement:} Engineer additional temporal features (rate of change in biomarkers, admission trajectory clustering)
+    \item \textbf{Threshold optimization:} Tune decision thresholds for clinical deployment criteria
+    \item \textbf{Interpretability:} Apply SHAP and attention mechanisms to identify patient-specific risk factors
+    \item \textbf{External validation:} Evaluate on holdout institution data (if available) to assess generalization
+\end{itemize}
+
+\section{Timeline and Milestones}
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Milestone} & \textbf{Target Date} & \textbf{Status} \\
+\hline
+Data preprocessing pipeline & Oct 10 & \checkmark Completed \\
+Baseline ML models & Oct 18 & \checkmark Completed \\
+Deep learning model development & Oct 25 & In Progress \\
+Hyperparameter tuning \& validation & Nov 1 & Planned \\
+Final report \& presentation & Nov 8 & Planned \\
+\hline
+\end{tabular}
+\caption{Project timeline with key milestones and completion status.}
+\label{tab:timeline}
+\end{table}
+
+\section{Contributions}
+
+\begin{itemize}
+    \item \textbf{First Author:} Data preprocessing pipeline development, feature engineering, dataset documentation
+    \item \textbf{Second Author:} Exploratory data analysis, visualization pipeline, insights generation
+    \item \textbf{Third Author:} Baseline model development, hyperparameter tuning, cross-validation framework, performance evaluation
+\end{itemize}
+
+All team members contributed to code review, documentation, and integration.
+
+\section{Assumptions and Challenges}
+
+\begin{itemize}
+    \item \textbf{Data quality:} We assume that MIMIC-IV data is reasonably complete; missing values were handled via feature-specific imputation strategies
+    \item \textbf{Temporal scope:} Readmission is defined as any admission within 30 days of discharge; transfer to another hospital facility was not considered a separate admission
+    \item \textbf{Computational constraints:} SVM was trained on 50K stratified samples due to O(n²) complexity; full-dataset SVM training would require significantly more computational resources
+    \item \textbf{Generalization:} MIMIC-IV represents a single US institution; external validation is needed for broader clinical applicability
+    \item \textbf{Temporal dynamics:} Current baseline models use static admission-level features; incorporating time-series information may reveal additional predictive patterns
+\end{itemize}
+
+% ------------------------------
+% Bibliography
+% ------------------------------
+\begin{thebibliography}{8}
+\bibitem{ref_mimic}
+Johnson, A.E., Pollard, T.J., Shen, L. et al.: MIMIC-IV, a freely accessible electronic health record dataset. \textit{Scientific Data}, \textbf{10}(1), 1--8 (2023)
+
+\bibitem{ref_readmission}
+Joynt, K.E., Jha, A.K.: Thirty-day readmissions—truth and consequences. \textit{New England Journal of Medicine}, \textbf{366}(15), 1366--1369 (2012)
+
+\bibitem{ref_deeplearning}
+Goodfellow, I., Bengio, Y., Courville, A.: \textit{Deep Learning}. MIT Press, Cambridge (2016)
+
+\bibitem{ref_xgboost}
+Chen, T., Guestrin, C.: XGBoost: A scalable tree boosting system. In: \textit{Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining}, pp. 785--794 (2016)
+
+\bibitem{ref_sklearn}
+Pedregosa, F., Varoquaux, G., Gramfort, A. et al.: Scikit-learn: Machine Learning in Python. \textit{Journal of Machine Learning Research}, \textbf{12}, 2825--2830 (2011)
+
+\end{thebibliography}
+
+\end{document}
