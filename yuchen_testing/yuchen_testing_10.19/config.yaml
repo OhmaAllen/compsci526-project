@@ -1,0 +1,272 @@
+# Project Configuration for 30-Day Readmission Prediction
+
+# Data paths
+data:
+  raw_data_path: "/Users/yuchenzhou/Documents/duke/compsci526/final_proj/mimic-iv-3.1"
+  processed_data_path: "mimic_data/processed_data"
+  output_path: "results"
+  
+  # Source files (relative to raw_data_path)
+  hosp_path: "hosp"
+  icu_path: "icu"
+  
+  # Key tables
+  admissions: "hosp/admissions.csv"
+  patients: "hosp/patients.csv"
+  diagnoses_icd: "hosp/diagnoses_icd.csv"
+  procedures_icd: "hosp/procedures_icd.csv"
+  labevents: "hosp/labevents.csv"
+  prescriptions: "hosp/prescriptions.csv"
+  chartevents: "icu/chartevents.csv"
+  d_items: "icu/d_items.csv"
+  d_labitems: "hosp/d_labitems.csv"
+  drgcodes: "hosp/drgcodes.csv"
+
+# Cohort selection criteria
+cohort:
+  min_age: 18  # Minimum age at admission
+  min_los_hours: 24  # Minimum length of stay
+  exclude_deaths: true  # Exclude patients who died during admission
+  exclude_ama: true  # Exclude discharged against medical advice
+  exclude_transfers: true  # Exclude transfers to other acute care
+  
+  # Valid admission types (keep these)
+  valid_admission_types:
+    - "AMBULATORY OBSERVATION"
+    - "DIRECT EMER."
+    - "DIRECT OBSERVATION"
+    - "ELECTIVE"
+    - "EU OBSERVATION"
+    - "EW EMER."
+    - "OBSERVATION ADMIT"
+    - "SURGICAL SAME DAY ADMISSION"
+    - "URGENT"
+
+# Label generation
+labels:
+  readmission_days: 30  # 30-day readmission
+  exclude_last_admission: true  # Remove last admission per patient if no follow-up
+  handle_death_as_competing_risk: true  # Track deaths separately
+  min_days_between_admits: 0  # Same-day transfers not counted as readmission
+
+# Feature engineering
+features:
+  # Time window for temporal features
+  time_window_hours: 48  # Last 48 hours before discharge
+  time_bin_hours: 1  # Hourly aggregation
+  
+  # Vital signs (from chartevents)
+  vitals:
+    - name: "heart_rate"
+      itemids: [220045]  # Heart Rate
+    - name: "sbp"
+      itemids: [220050, 220179]  # Systolic BP (non-invasive, invasive)
+    - name: "dbp"
+      itemids: [220051, 220180]  # Diastolic BP
+    - name: "mbp"
+      itemids: [220052, 220181]  # Mean BP
+    - name: "resp_rate"
+      itemids: [220210, 224690]  # Respiratory Rate
+    - name: "spo2"
+      itemids: [220277]  # SpO2
+    - name: "temperature"
+      itemids: [223761, 223762]  # Temperature F, C
+  
+  # Laboratory values (from labevents)
+  labs:
+    - name: "wbc"
+      itemids: [51300, 51301]  # White Blood Cells
+    - name: "hemoglobin"
+      itemids: [50811, 51222]  # Hemoglobin
+    - name: "platelets"
+      itemids: [51265]  # Platelet Count
+    - name: "sodium"
+      itemids: [50824, 50983]  # Sodium
+    - name: "potassium"
+      itemids: [50822, 50971]  # Potassium
+    - name: "creatinine"
+      itemids: [50912]  # Creatinine
+    - name: "bun"
+      itemids: [51006]  # Blood Urea Nitrogen
+    - name: "glucose"
+      itemids: [50809, 50931]  # Glucose
+    - name: "lactate"
+      itemids: [50813]  # Lactate
+    - name: "bicarbonate"
+      itemids: [50882]  # Bicarbonate
+    - name: "chloride"
+      itemids: [50806, 50902]  # Chloride
+    - name: "anion_gap"
+      itemids: [50868]  # Anion Gap
+  
+  # Medications (from prescriptions) - binary flags
+  medications:
+    antibiotics: ["antibiotic", "cef", "vanc", "pip", "mero", "azithro"]
+    vasopressors: ["norepinephrine", "epinephrine", "vasopressin", "phenylephrine"]
+    diuretics: ["furosemide", "lasix", "bumex", "torsemide"]
+    
+  # Static features
+  static:
+    demographics: ["age", "gender"]
+    comorbidity_indices: ["charlson", "elixhauser"]
+    admission_features: ["admission_type", "admission_location", "length_of_stay"]
+
+# Missing data handling
+missing_data:
+  # Strategy: "mask_aware", "forward_fill", "backward_fill", "population_mean", "median"
+  strategy: "mask_aware"
+  
+  # For non-mask-aware models
+  imputation:
+    vitals: "forward_fill"  # Forward fill vital signs
+    labs: "population_median"  # Use population median for labs
+    
+  # Exclusion thresholds
+  max_missing_rate_per_feature: 0.80  # Drop features missing > 80%
+  max_missing_rate_per_admission: 0.90  # Drop admissions missing > 90% of features
+  
+  # Outlier handling
+  outlier_method: "clip"  # "clip" or "remove"
+  outlier_bounds:
+    heart_rate: [20, 300]
+    sbp: [50, 250]
+    dbp: [20, 200]
+    resp_rate: [5, 60]
+    spo2: [50, 100]
+    temperature: [25, 45]  # Celsius
+    glucose: [20, 800]
+    creatinine: [0.1, 20]
+
+# Train/Val/Test split
+split:
+  train_ratio: 0.70
+  val_ratio: 0.15
+  test_ratio: 0.15
+  random_seed: 42
+  stratify_by: "readmit_30d"
+  split_by: "subject_id"  # Patient-level split
+
+# Model configurations
+models:
+  random_seed: 2024
+  
+  logistic_regression:
+    penalty: "l2"
+    C: 1.0
+    max_iter: 1000
+    class_weight: "balanced"
+  
+  random_forest:
+    n_estimators: 100
+    max_depth: 10
+    min_samples_split: 20
+    min_samples_leaf: 10
+    class_weight: "balanced"
+    random_state: 2024
+  
+  xgboost:
+    n_estimators: 100
+    max_depth: 6
+    learning_rate: 0.1
+    subsample: 0.8
+    colsample_bytree: 0.8
+    scale_pos_weight: 3  # Adjust for class imbalance
+    random_state: 2024
+  
+  lstm:
+    hidden_size: 128
+    num_layers: 2
+    dropout: 0.2
+    bidirectional: false
+    learning_rate: 0.001
+    batch_size: 64
+    epochs: 50
+    early_stopping_patience: 10
+  
+  transformer:
+    d_model: 128
+    nhead: 4
+    num_layers: 2
+    dim_feedforward: 512
+    dropout: 0.1
+    learning_rate: 0.0001
+    batch_size: 32
+    epochs: 50
+    early_stopping_patience: 10
+
+# Evaluation
+evaluation:
+  metrics:
+    - "auroc"
+    - "auprc"
+    - "f1"
+    - "precision"
+    - "recall"
+    - "brier_score"
+    - "expected_calibration_error"
+  
+  # Clinical utility metrics
+  recall_at_top_k: [0.05, 0.10, 0.15, 0.20]  # Top 5%, 10%, 15%, 20%
+  
+  # Statistical testing
+  bootstrap_iterations: 1000
+  confidence_level: 0.95
+  significance_level: 0.05
+  
+  # Fairness evaluation
+  fairness_groups:
+    - "gender"
+    - "age_quartile"
+    - "race"
+  
+  fairness_metrics:
+    - "equalized_odds"
+    - "demographic_parity"
+    - "calibration_by_group"
+
+# Ablation studies
+ablation:
+  time_windows: [24, 48, 72]  # hours
+  
+  feature_sets:
+    - name: "static_only"
+      features: ["static"]
+    - name: "vitals_only"
+      features: ["vitals"]
+    - name: "labs_only"
+      features: ["labs"]
+    - name: "vitals_labs"
+      features: ["vitals", "labs"]
+    - name: "full"
+      features: ["vitals", "labs", "medications", "static"]
+  
+  subgroups:
+    - name: "age_groups"
+      bins: [18, 45, 65, 80, 120]
+      labels: ["young_adult", "middle_age", "senior", "elderly"]
+    - name: "primary_diagnosis"
+      categories: ["heart_failure", "copd", "sepsis", "pneumonia", "other"]
+
+# Logging and output
+logging:
+  level: "INFO"
+  log_file: "experiments/logs/pipeline.log"
+  save_intermediate: true
+  
+output:
+  save_models: true
+  model_dir: "experiments/models"
+  save_predictions: true
+  prediction_dir: "results/predictions"
+  save_plots: true
+  plot_dir: "results/plots"
+  plot_format: "png"
+  plot_dpi: 300
+
+# Computational resources
+compute:
+  n_jobs: -1  # Use all CPU cores
+  use_gpu: true  # For PyTorch models
+  gpu_device: 0
+  num_workers: 4  # DataLoader workers
+  pin_memory: true
